@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- include file="$(find mynteye_wrapper_d)/launch/mynteye.launch" / -->
+    <include file="$(find orbslam_stereo)/launch/spawner_pub.launch" />
+    <node pkg="apriltag_test" type="apriltag_test_node" name="apriltag_test_node" output="screen">
+        <remap from="/camera/left/image_raw" to="/mynteye/left/image_color"/>
+        <remap from="/camera/right/image_raw" to="/mynteye/right/image_color"/>
+    </node>
+</launch>

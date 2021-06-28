@@ -1,0 +1,8 @@
+prefix=/home/zlz/catkin_ws/src/apriltag_test/build/devel
+
+Name: apriltag_test
+Description: Description of apriltag_test
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

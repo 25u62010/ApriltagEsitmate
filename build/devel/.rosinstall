@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/zlz/catkin_ws/src/apriltag_test/build/devel/setup.sh
