@@ -78,6 +78,17 @@ list_install_components/fast: list_install_components
 
 .PHONY : list_install_components/fast
 
+# Special rule for the target rebuild_cache
+rebuild_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
+	/usr/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+.PHONY : rebuild_cache
+
+# Special rule for the target rebuild_cache
+rebuild_cache/fast: rebuild_cache
+
+.PHONY : rebuild_cache/fast
+
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
@@ -101,17 +112,6 @@ install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
 	/usr/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
-
-# Special rule for the target rebuild_cache
-rebuild_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
-.PHONY : rebuild_cache
-
-# Special rule for the target rebuild_cache
-rebuild_cache/fast: rebuild_cache
-
-.PHONY : rebuild_cache/fast
 
 # Special rule for the target test
 test:
@@ -818,6 +818,19 @@ sensor_msgs_generate_messages_cpp/fast:
 .PHONY : sensor_msgs_generate_messages_cpp/fast
 
 #=============================================================================
+# Target rules for targets named test_apriltag
+
+# Build rule for target.
+test_apriltag: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 test_apriltag
+.PHONY : test_apriltag
+
+# fast build rule for target.
+test_apriltag/fast:
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/build
+.PHONY : test_apriltag/fast
+
+#=============================================================================
 # Target rules for targets named sensor_msgs_generate_messages_eus
 
 # Build rule for target.
@@ -954,6 +967,7 @@ src/Camera.o: src/Camera.cpp.o
 # target to build an object file
 src/Camera.cpp.o:
 	$(MAKE) -f CMakeFiles/apriltag_test_node.dir/build.make CMakeFiles/apriltag_test_node.dir/src/Camera.cpp.o
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/Camera.cpp.o
 .PHONY : src/Camera.cpp.o
 
 src/Camera.i: src/Camera.cpp.i
@@ -963,6 +977,7 @@ src/Camera.i: src/Camera.cpp.i
 # target to preprocess a source file
 src/Camera.cpp.i:
 	$(MAKE) -f CMakeFiles/apriltag_test_node.dir/build.make CMakeFiles/apriltag_test_node.dir/src/Camera.cpp.i
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/Camera.cpp.i
 .PHONY : src/Camera.cpp.i
 
 src/Camera.s: src/Camera.cpp.s
@@ -972,6 +987,7 @@ src/Camera.s: src/Camera.cpp.s
 # target to generate assembly for a file
 src/Camera.cpp.s:
 	$(MAKE) -f CMakeFiles/apriltag_test_node.dir/build.make CMakeFiles/apriltag_test_node.dir/src/Camera.cpp.s
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/Camera.cpp.s
 .PHONY : src/Camera.cpp.s
 
 src/FindApritag.o: src/FindApritag.cpp.o
@@ -981,6 +997,7 @@ src/FindApritag.o: src/FindApritag.cpp.o
 # target to build an object file
 src/FindApritag.cpp.o:
 	$(MAKE) -f CMakeFiles/apriltag_test_node.dir/build.make CMakeFiles/apriltag_test_node.dir/src/FindApritag.cpp.o
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/FindApritag.cpp.o
 .PHONY : src/FindApritag.cpp.o
 
 src/FindApritag.i: src/FindApritag.cpp.i
@@ -990,6 +1007,7 @@ src/FindApritag.i: src/FindApritag.cpp.i
 # target to preprocess a source file
 src/FindApritag.cpp.i:
 	$(MAKE) -f CMakeFiles/apriltag_test_node.dir/build.make CMakeFiles/apriltag_test_node.dir/src/FindApritag.cpp.i
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/FindApritag.cpp.i
 .PHONY : src/FindApritag.cpp.i
 
 src/FindApritag.s: src/FindApritag.cpp.s
@@ -999,6 +1017,7 @@ src/FindApritag.s: src/FindApritag.cpp.s
 # target to generate assembly for a file
 src/FindApritag.cpp.s:
 	$(MAKE) -f CMakeFiles/apriltag_test_node.dir/build.make CMakeFiles/apriltag_test_node.dir/src/FindApritag.cpp.s
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/FindApritag.cpp.s
 .PHONY : src/FindApritag.cpp.s
 
 src/apriltag_test_node.o: src/apriltag_test_node.cpp.o
@@ -1028,6 +1047,33 @@ src/apriltag_test_node.cpp.s:
 	$(MAKE) -f CMakeFiles/apriltag_test_node.dir/build.make CMakeFiles/apriltag_test_node.dir/src/apriltag_test_node.cpp.s
 .PHONY : src/apriltag_test_node.cpp.s
 
+src/test.o: src/test.cpp.o
+
+.PHONY : src/test.o
+
+# target to build an object file
+src/test.cpp.o:
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/test.cpp.o
+.PHONY : src/test.cpp.o
+
+src/test.i: src/test.cpp.i
+
+.PHONY : src/test.i
+
+# target to preprocess a source file
+src/test.cpp.i:
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/test.cpp.i
+.PHONY : src/test.cpp.i
+
+src/test.s: src/test.cpp.s
+
+.PHONY : src/test.s
+
+# target to generate assembly for a file
+src/test.cpp.s:
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/src/test.cpp.s
+.PHONY : src/test.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -1036,6 +1082,7 @@ help:
 	@echo "... depend"
 	@echo "... install/strip"
 	@echo "... list_install_components"
+	@echo "... rebuild_cache"
 	@echo "... install/local"
 	@echo "... nav_msgs_generate_messages_eus"
 	@echo "... geometry_msgs_generate_messages_eus"
@@ -1069,7 +1116,6 @@ help:
 	@echo "... apriltag_test_node"
 	@echo "... sensor_msgs_generate_messages_py"
 	@echo "... tf2_msgs_generate_messages_eus"
-	@echo "... rebuild_cache"
 	@echo "... geometry_msgs_generate_messages_nodejs"
 	@echo "... geometry_msgs_generate_messages_cpp"
 	@echo "... tf2_msgs_generate_messages_py"
@@ -1090,6 +1136,7 @@ help:
 	@echo "... tf_generate_messages_nodejs"
 	@echo "... nav_msgs_generate_messages_nodejs"
 	@echo "... sensor_msgs_generate_messages_cpp"
+	@echo "... test_apriltag"
 	@echo "... sensor_msgs_generate_messages_eus"
 	@echo "... sensor_msgs_generate_messages_lisp"
 	@echo "... edit_cache"
@@ -1110,6 +1157,9 @@ help:
 	@echo "... src/apriltag_test_node.o"
 	@echo "... src/apriltag_test_node.i"
 	@echo "... src/apriltag_test_node.s"
+	@echo "... src/test.o"
+	@echo "... src/test.i"
+	@echo "... src/test.s"
 .PHONY : help
 
 

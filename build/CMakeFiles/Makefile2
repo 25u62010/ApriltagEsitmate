@@ -54,6 +54,7 @@ CMAKE_BINARY_DIR = /home/zlz/catkin_ws/src/apriltag_test/build
 
 # The main recursive "all" target.
 all: CMakeFiles/apriltag_test_node.dir/all
+all: CMakeFiles/test_apriltag.dir/all
 all: gtest/all
 
 .PHONY : all
@@ -114,6 +115,7 @@ clean: CMakeFiles/tf_generate_messages_lisp.dir/clean
 clean: CMakeFiles/tf_generate_messages_nodejs.dir/clean
 clean: CMakeFiles/nav_msgs_generate_messages_nodejs.dir/clean
 clean: CMakeFiles/sensor_msgs_generate_messages_cpp.dir/clean
+clean: CMakeFiles/test_apriltag.dir/clean
 clean: CMakeFiles/sensor_msgs_generate_messages_eus.dir/clean
 clean: CMakeFiles/sensor_msgs_generate_messages_lisp.dir/clean
 clean: CMakeFiles/sensor_msgs_generate_messages_nodejs.dir/clean
@@ -1530,6 +1532,33 @@ sensor_msgs_generate_messages_cpp: CMakeFiles/sensor_msgs_generate_messages_cpp.
 CMakeFiles/sensor_msgs_generate_messages_cpp.dir/clean:
 	$(MAKE) -f CMakeFiles/sensor_msgs_generate_messages_cpp.dir/build.make CMakeFiles/sensor_msgs_generate_messages_cpp.dir/clean
 .PHONY : CMakeFiles/sensor_msgs_generate_messages_cpp.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/test_apriltag.dir
+
+# All Build rule for target.
+CMakeFiles/test_apriltag.dir/all:
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/depend
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zlz/catkin_ws/src/apriltag_test/build/CMakeFiles --progress-num=13,14,15,16 "Built target test_apriltag"
+.PHONY : CMakeFiles/test_apriltag.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_apriltag.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zlz/catkin_ws/src/apriltag_test/build/CMakeFiles 4
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/test_apriltag.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zlz/catkin_ws/src/apriltag_test/build/CMakeFiles 0
+.PHONY : CMakeFiles/test_apriltag.dir/rule
+
+# Convenience name for target.
+test_apriltag: CMakeFiles/test_apriltag.dir/rule
+
+.PHONY : test_apriltag
+
+# clean rule for target.
+CMakeFiles/test_apriltag.dir/clean:
+	$(MAKE) -f CMakeFiles/test_apriltag.dir/build.make CMakeFiles/test_apriltag.dir/clean
+.PHONY : CMakeFiles/test_apriltag.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/sensor_msgs_generate_messages_eus.dir

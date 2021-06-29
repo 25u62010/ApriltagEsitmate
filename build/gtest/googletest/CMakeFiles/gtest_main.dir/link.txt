@@ -1,1 +1,1 @@
-/bin/c++ -fPIC -O3 -DNDEBUG  -shared -Wl,-soname,libgtest_main.so -o ../../lib/libgtest_main.so CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  -Wl,-rpath,/home/zlz/catkin_ws/src/apriltag_test/build/lib ../../lib/libgtest.so -lpthread 
+/bin/c++ -fPIC -g  -shared -Wl,-soname,libgtest_maind.so -o ../../lib/libgtest_maind.so CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  -Wl,-rpath,/home/zlz/catkin_ws/src/apriltag_test/build/lib ../../lib/libgtestd.so -lpthread 
