@@ -104,8 +104,7 @@ void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
     }
     unordered_map<int, bool> inlinears;
     float maxScore=0;
-    for (int i = 0; i < nIterations; i++)
-    {
+    for (int i = 0; i < nIterations; i++) {
         vector<int> candiateNoTemp = candiateNo;
         vector<zPoint> points;
         unordered_map<int, bool> inlinearsI;

@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <algorithm>
 #include <fstream>
@@ -15,6 +16,77 @@ using namespace ZLZ_SLAM;
 cv::Mat imgCVR;
 cv::Mat imgCVL;
 
+void Normalize(const FindApritag::TagsPos& points, FindApritag::TagsPos& vNormalizedPoints,cv::Mat &T ,cv::Mat &T1)
+{
+    float meanU = 0;
+    float meanV = 0;
+    float meanX = 0;
+    float meanY = 0;
+
+    const int N = points.size();
+
+    vNormalizedPoints.clear();
+
+    for (FindApritag::TagsPos::const_iterator it = points.begin(), end = points.end(); it != end;it++)
+    {
+        
+        meanU += it->second.pixel.u;
+        meanV += it->second.pixel.v;
+        meanX += it->second.worldCoor.x;
+        meanY += it->second.worldCoor.y;
+    }
+
+    meanU = meanU/N;
+    meanV = meanV/N;
+    meanX = meanX/N;
+    meanY = meanY/N;
+
+    float meanDevU = 0;
+    float meanDevV = 0;
+    float meanDevX = 0;
+    float meanDevY = 0;
+
+    for(FindApritag::TagsPos::const_iterator it = points.begin(), end = points.end(); it != end;it++)
+    {
+        int tagNo = it->first;
+        vNormalizedPoints[tagNo].pixel.u = it->second.pixel.u - meanX;
+        vNormalizedPoints[tagNo].pixel.v = it->second.pixel.v - meanY;
+        vNormalizedPoints[tagNo].worldCoor.x = it->second.worldCoor.x - meanU;
+        vNormalizedPoints[tagNo].worldCoor.y = it->second.worldCoor.y - meanV;
+
+        meanDevU += fabs(vNormalizedPoints[tagNo].pixel.u);
+        meanDevV += fabs(vNormalizedPoints[tagNo].pixel.v);
+        meanDevX += fabs(vNormalizedPoints[tagNo].worldCoor.x);
+        meanDevY += fabs(vNormalizedPoints[tagNo].worldCoor.y);
+    }
+    meanDevU = meanDevU / N;
+    meanDevV = meanDevV / N;
+    meanDevX = meanDevX / N;
+    meanDevY = meanDevY / N;
+    float sU = 1.0 / meanDevU;
+    float sV = 1.0 / meanDevV;
+    float sX = 1.0 / meanDevX;
+    float sY = 1.0 / meanDevY;
+    for(FindApritag::TagsPos::iterator it = vNormalizedPoints.begin(), end = vNormalizedPoints.end(); it != end;it++)
+    {
+        it->second.pixel.u = it->second.pixel.u * sU;
+        it->second.pixel.v = it->second.pixel.v * sV;
+        it->second.worldCoor.x = it->second.worldCoor.x * sX;
+        it->second.worldCoor.y = it->second.worldCoor.y * sY;
+    }
+
+    T = cv::Mat::eye(3,3,CV_32F);
+    T.at<float>(0,0) = sU;
+    T.at<float>(1,1) = sV;
+    T.at<float>(0,2) = -meanU*sU;
+    T.at<float>(1,2) = -meanV*sV;
+    T1 = cv::Mat::eye(3,3,CV_32F);
+    T1.at<float>(0,0) = sX;
+    T1.at<float>(1,1) = sY;
+    T1.at<float>(0,2) = -meanX*sX;
+    T1.at<float>(1,2) = -meanY*sY;
+}
+
 void CalApritagDepth(StereoCamera::Ptr pCamera,FindApritag::TagsPos& leftDetections,
                      FindApritag::TagsPos& rightDetections,
                      unordered_map<int, ZLZ_SLAM::zPoint3d>& priorPoints){
@@ -23,7 +95,7 @@ void CalApritagDepth(StereoCamera::Ptr pCamera,FindApritag::TagsPos& leftDetecti
             double depth = pCamera->CalDepth(it->second.pixel, rightDetections[it->first].pixel);
             it->second.cameraCoor=pCamera->Pixel2Camera(it->second.pixel,depth);
             it->second.worldCoor = priorPoints[it->first];
-            //cout << "no." << it->first << " " << it->second.cameraCoor.x << " " << it->second.cameraCoor.y << " " << it->second.cameraCoor.z << endl;
+            cout << "no." << it->first << " " << it->second.cameraCoor.x << " " << it->second.cameraCoor.y << " " << it->second.cameraCoor.z << endl;
         }
     }
 }
@@ -33,24 +105,27 @@ cv::Mat CalH(vector<zPoint>& points,cv::Mat K){
     double *D_ptr;
     for (int i = 0; i < n; i++){
         D_ptr = D.ptr<double>(2 * i);
-        D_ptr[3] = -points[i].worldCoor.x;
-        D_ptr[4] = -points[i].worldCoor.y;
-        D_ptr[5] = -1;
-        D_ptr[6] = points[i].worldCoor.x * points[i].pixel.v;
-        D_ptr[7] = points[i].worldCoor.y * points[i].pixel.v;
-        D_ptr[8] = points[i].pixel.v;
-        D_ptr = D.ptr<double>(2*i+1);
         D_ptr[0] = points[i].worldCoor.x;
         D_ptr[1] = points[i].worldCoor.y;
         D_ptr[2] = 1;
         D_ptr[6] = -points[i].worldCoor.x*points[i].pixel.u;
         D_ptr[7] = -points[i].worldCoor.y*points[i].pixel.u;
         D_ptr[8] = -points[i].pixel.u;
+
+        D_ptr = D.ptr<double>(2*i+1);
+        
+        D_ptr[3] = points[i].worldCoor.x;
+        D_ptr[4] = points[i].worldCoor.y;
+        D_ptr[5] = 1;
+        D_ptr[6] = -points[i].worldCoor.x * points[i].pixel.v;
+        D_ptr[7] = -points[i].worldCoor.y * points[i].pixel.v;
+        D_ptr[8] = -points[i].pixel.v;
     }
     cv::Mat u, w, vt;
     cv::SVDecomp(D, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
     cv::Mat H = vt.row(8).reshape(0, 3);
-    cout << H << endl;
+
+    cout << cv::norm(vt.row(8)) << endl;
     return H;
 }
 
@@ -82,7 +157,6 @@ float CheckInlinear(FindApritag::TagsPos& points,unordered_map<int, bool>& inlin
             inlinears[it->first] = false;
         }
     }
-    cout << score << endl;
     return score;
 }
 void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Ptr pCamera){
@@ -104,21 +178,27 @@ void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
     {
         vector<int> candiateNoTemp = candiateNo;
         vector<zPoint> points;
-        unordered_map<int, bool> inlinearsI;
-        for (int j = 0; j < 4; j++){
-            int no = rng.uniform(0, candiateNoTemp.size()-1);
+        unordered_map<int, bool> inlinearsI1,inlinearsI2;
+        for (int j = 0; j < 8; j++){
+            int no = rng.uniform(0, candiateNoTemp.size());
             points.push_back(detections[candiateNoTemp[no]]);
             candiateNoTemp[no] = candiateNoTemp.back();
             candiateNoTemp.pop_back();
         }
         cv::Mat Hi = CalH(points,pCamera->mK);
-        float score = CheckInlinear(detections, inlinearsI, Hi);
-        if(score>maxScore){
-            maxScore = score;
-            inlinears = inlinearsI;
+        float score1 = CheckInlinear(detections, inlinearsI1, Hi);
+        if(score1>maxScore){
+            maxScore = score1;
+            inlinears = inlinearsI1;
             H = Hi;
         }
-        
+        Hi = -Hi;
+        float score2 = CheckInlinear(detections, inlinearsI2, Hi);
+        if(score2>maxScore){
+            maxScore = score2;
+            inlinears = inlinearsI2;
+            H = Hi;
+        }
     }
     cv::Mat kInv;
     cv::invert(pCamera->mK,kInv);
@@ -130,7 +210,6 @@ void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
     cv::Mat T(4,4,CV_64FC1,cv::Scalar(0));
     cv::Mat R(3,3,CV_64FC1,cv::Scalar(0));
     r1.copyTo(R.col(0).rowRange(0,3));
-    cout << r1 << endl;
     r2.copyTo(R.col(1).rowRange(0,3));
     r3.copyTo(R.col(2).rowRange(0,3));
     cv::Mat w, u, vt;
@@ -142,7 +221,7 @@ void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
         T = -T;
     }
     T.at < double >(3,3)= 1;
-    cout << "T:" << T << endl;
+    cout << T << endl;
 }
 void ReadPriotPoints(unordered_map<int, ZLZ_SLAM::zPoint3d>& priorPoints){
     priorPoints[0] = zPoint3d(0.000, 0.000, 0.000);
@@ -172,7 +251,7 @@ int main(int argc, char **argv)
     unordered_map<int, ZLZ_SLAM::zPoint3d> priorPoints;
     ReadPriotPoints(priorPoints);
     imgCVL = cv::imread("/home/zlz/PhotoSave/L0.jpg");
-    imgCVR = cv::imread("/home/zlz/PhotoSave/L0.jpg");
+    imgCVR = cv::imread("/home/zlz/PhotoSave/R0.jpg");
     if (!imgCVL.empty())
     {
         cv::Mat distroImg;

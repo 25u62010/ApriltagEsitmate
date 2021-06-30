@@ -46,6 +46,12 @@ Camera.h
 unordered_map
 -
 
+/home/zlz/catkin_ws/src/apriltag_test/src/FindApritag.cpp
+FindApritag.h
+/home/zlz/catkin_ws/src/apriltag_test/src/FindApritag.h
+string
+-
+
 /home/zlz/catkin_ws/src/apriltag_test/src/apriltag_test_node.cpp
 iostream
 -
