@@ -168,7 +168,7 @@ float CheckInlinear(FindApritag::TagsPos& points,unordered_map<int, bool>& inlin
 bool DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Ptr pCamera){
     if(detections.size()<8){
         cout << "The number of detections must larger than 6." << endl;
-        return;
+        return false;
     }
     cv::RNG rng;
     const int nIterations = 200;
@@ -242,6 +242,7 @@ bool DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
     }
     T.at < double >(3,3)= 1;
     cout << T << endl;
+    return true;
 }
 void OpencvSolvePose(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Ptr pCamera){
     vector<cv::Point2f> uv;
