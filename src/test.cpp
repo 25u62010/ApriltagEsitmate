@@ -87,14 +87,20 @@ void Normalize(const FindApritag::TagsPos& points, FindApritag::TagsPos& vNormal
 }
 
 void CalApritagDepth(StereoCamera::Ptr pCamera,FindApritag::TagsPos& leftDetections,
-                     FindApritag::TagsPos& rightDetections,
+                     FindApritag::TagsPos& rightDetections,FindApritag::TagsPos& detections,
                      unordered_map<int, ZLZ_SLAM::zPoint3d>& priorPoints){
     for (FindApritag::TagsPos::iterator it = leftDetections.begin(); it != leftDetections.end();it++){
         if(rightDetections.count(it->first)&&priorPoints.count(it->first)){
             double depth = pCamera->CalDepth(it->second.pixel, rightDetections[it->first].pixel);
-            it->second.cameraCoor=pCamera->Pixel2Camera(it->second.pixel,depth);
-            it->second.worldCoor = priorPoints[it->first];
-            cout << "no." << it->first << " " << it->second.cameraCoor.x << ", " << it->second.cameraCoor.y << ", " << it->second.cameraCoor.z << endl;
+            if(depth <= 0){
+                continue;
+            }
+            detections[it->first].pixel = it->second.pixel;
+            detections[it->first].cameraCoor = pCamera->Pixel2Camera(it->second.pixel, depth);
+            detections[it->first].worldCoor = priorPoints[it->first];
+            cout << "no." << it->first << " " << detections[it->first].cameraCoor.x 
+                                      << ", " << detections[it->first].cameraCoor.y
+                                      << ", " << detections[it->first].cameraCoor.z << endl;
         }
     }
 }
@@ -145,13 +151,10 @@ float CheckInlinear(FindApritag::TagsPos& points,unordered_map<int, bool>& inlin
         u1 /= s;
         double v1 = h21 * point.worldCoor.x + h22 * point.worldCoor.y + h23;
         v1 /= s;
-        if(u1<0||v1<0){
-            continue;
-        }
         double error = (u1 - point.pixel.u) * (u1 - point.pixel.u) + (v1 - point.pixel.v) * (v1 - point.pixel.v);
-        if(error<5.991){
-            score = 5.991 - error;
-            inlinears[it->first]=true;
+        if( error < 5.991 ){
+            score += 5.991 - error;
+            inlinears[it->first] = true;
         }
         else{
             inlinears[it->first] = false;
@@ -211,11 +214,9 @@ void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
         }
     }
     
-    
-    double lamda = 1 / cv::norm(kInv * homongraph.col(0));
-    cv::Mat r1 = lamda * kInv * homongraph.col(0);
-    cv::Mat r2 = lamda * kInv * homongraph.col(1);
-    cv::Mat t = lamda * kInv * homongraph.col(2);
+    cv::Mat r1 = kInv * homongraph.col(0);
+    cv::Mat r2 = kInv * homongraph.col(1);
+    cv::Mat t =  kInv * homongraph.col(2);
     cv::Mat r3 = r1.cross(r2);
     cv::Mat T(4,4,CV_64FC1,cv::Scalar(0));
     cv::Mat R(3,3,CV_64FC1,cv::Scalar(0));
@@ -225,14 +226,19 @@ void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
     cv::Mat w, u, vt;
     cv::SVDecomp(R, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
     R = u * vt;
+    
+    if( t.at<double>(2,0)<0 ){
+        cv::Mat Rz_pi_2 = (cv::Mat_<double>(3,3) << -1, 0, 0, 0, -1, 0, 0, 0, 1);
+        t = -t;
+        R = Rz_pi_2 * R;
+    }
     R.copyTo(T.colRange(0, 3).rowRange(0, 3));
     t.copyTo(T.col(3).rowRange(0, 3));
     if(cv::determinant(R)<0){
         T = -T;
     }
     T.at < double >(3,3)= 1;
-    cout <<T << endl;
-    
+    cout << T << endl;
 }
 void OpencvSolvePose(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Ptr pCamera){
     vector<cv::Point2f> uv;
@@ -269,6 +275,7 @@ void OpencvSolvePose(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Pt
     cv::Mat T(4,4,CV_32FC1);
     rmat0.copyTo(T.rowRange(0, 3).colRange(0, 3));
     tvec0.copyTo(T.rowRange(0, 3).col(3));
+    T.at < double >(3,3)= 1;
     cout << "T"
             "="
          << T << endl;
@@ -325,9 +332,10 @@ int main(int argc, char **argv)
         findApritagR.Detect(gray, detectionsR);
     }
     if(!imgCVL.empty()&&!imgCVR.empty()){
-        CalApritagDepth(pCamera, detectionsL,detectionsR,priorPoints);
-        DirectLinearTransform(detectionsL, pCamera);
-        OpencvSolvePose(detectionsL, pCamera);
+        FindApritag::TagsPos detections;
+        CalApritagDepth(pCamera, detectionsL, detectionsR,detections, priorPoints);
+        DirectLinearTransform(detections, pCamera);
+        OpencvSolvePose(detections, pCamera);
     }
 
     cv::waitKey(0);
