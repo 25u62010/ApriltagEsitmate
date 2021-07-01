@@ -1,24 +1,21 @@
+
 #include <iostream>
 #include <algorithm>
 #include <fstream>
 #include <chrono>
-#include <message_filters/subscriber.h>
-#include <message_filters/time_synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
-
 #include <iostream>
 #include <string>
 #include <thread>
-#include <sensor_msgs/Image.h>
-#include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
+
 #include "Camera.h"
 #include "FindApritag.h"
 using namespace std;
 using namespace ZLZ_SLAM;
 cv::Mat imgCVR;
 cv::Mat imgCVL;
+
 void Normalize(const FindApritag::TagsPos& points, FindApritag::TagsPos& vNormalizedPoints,cv::Mat &T ,cv::Mat &T1)
 {
     float meanU = 0;
@@ -165,10 +162,10 @@ float CheckInlinear(FindApritag::TagsPos& points,unordered_map<int, bool>& inlin
     }
     return score;
 }
-bool DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Ptr pCamera){
+void DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Ptr pCamera){
     if(detections.size()<8){
         cout << "The number of detections must larger than 6." << endl;
-        return false;
+        return;
     }
     cv::RNG rng;
     const int nIterations = 200;
@@ -242,7 +239,6 @@ bool DirectLinearTransform(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCame
     }
     T.at < double >(3,3)= 1;
     cout << T << endl;
-    return true;
 }
 void OpencvSolvePose(FindApritag::TagsPos& detections,ZLZ_SLAM::StereoCamera::Ptr pCamera){
     vector<cv::Point2f> uv;
@@ -303,70 +299,46 @@ void ReadPriotPoints(unordered_map<int, ZLZ_SLAM::zPoint3d>& priorPoints){
     priorPoints[14] = zPoint3d(0.0707229, 0.1686, 0.406986);
     priorPoints[15] = zPoint3d(0.118351, 0.170304, 0.407742);
 }
-void GrabStereo(const sensor_msgs::ImageConstPtr& msgsLeft,const sensor_msgs::ImageConstPtr& msgsRight){
-    cv_bridge::CvImageConstPtr cvPtrL;
-    cvPtrL=cv_bridge::toCvCopy(msgsLeft);
-    imgCVL=cvPtrL->image;
-    cv_bridge::CvImageConstPtr cvPtrR;
-    cvPtrR=cv_bridge::toCvCopy(msgsRight);
-    imgCVR=cvPtrR->image;
-}
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "apriltag_test_node");
-    ros::NodeHandle nh;
-    message_filters::Subscriber<sensor_msgs::Image> leftSub(nh, "/camera/left/image_raw", 1);
-    message_filters::Subscriber<sensor_msgs::Image> rightSub(nh, "/camera/right/image_raw", 1);
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
-    message_filters::Synchronizer<sync_pol> sync(sync_pol(10), leftSub,rightSub);
-    sync.registerCallback(boost::bind(GrabStereo,_1,_2));
-    ros::Rate r(100);
+    
     FindApritag findApritagL(argc, argv);
     FindApritag findApritagR(argc, argv);
     FindApritag::TagsPos detectionsL, detectionsR;
     StereoCamera::Ptr pCamera = StereoCamera::CreateStereoCamera("/home/zlz/catkin_ws/src/apriltag_test/config/mynteye.yaml");
     unordered_map<int, ZLZ_SLAM::zPoint3d> priorPoints;
     ReadPriotPoints(priorPoints);
-    while (ros::ok())
+    imgCVL = cv::imread("/home/zlz/PhotoSave/L0.jpg");
+    imgCVR = cv::imread("/home/zlz/PhotoSave/R0.jpg");
+    if (!imgCVL.empty())
     {
-        if(!imgCVL.empty()){
-            cv::Mat distroImg;
-            pCamera->UndistrotImage(imgCVL, distroImg, StereoCamera::IMG_TYPE_LEFT);
-            cv::Mat gray;
-            cv::cvtColor(distroImg, gray,cv::COLOR_RGB2GRAY);
-            detectionsL.clear();
-            findApritagL.Detect(gray, detectionsL);
-            // Draw detection outlines
-            findApritagL.DrawDetections(distroImg);
-            
-            imshow("Tag Detections", distroImg);
-        }
-        if(!imgCVR.empty()){
-            cv::Mat distroImg;
-            pCamera->UndistrotImage(imgCVR, distroImg, StereoCamera::IMG_TYPE_RIGHT);
-            cv::Mat gray;
-            cv::cvtColor(distroImg, gray,cv::COLOR_RGB2GRAY);
-            detectionsR.clear();
-            findApritagR.Detect(gray, detectionsR);
-        }
-        if(!imgCVL.empty()&&!imgCVR.empty()){
-            FindApritag::TagsPos detections;
-            CalApritagDepth(pCamera, detectionsL, detectionsR, detections, priorPoints);
-            DirectLinearTransform(detections, pCamera);
-            try{
-                OpencvSolvePose(detections,pCamera);
-            }
-            catch(cv::Exception e){
-                cout << "Rubbish opencv come a bug again!\n";
-                cout << e.what() << endl;
-            }
-            
-        }
-
-        cv::waitKey(20);
-        ros::spinOnce();
-        r.sleep();
+        cv::Mat distroImg;
+        pCamera->UndistrotImage(imgCVL, distroImg, StereoCamera::IMG_TYPE_LEFT);
+        cv::Mat gray;
+        cv::cvtColor(distroImg, gray,cv::COLOR_RGB2GRAY);
+        detectionsL.clear();
+        findApritagL.Detect(gray, detectionsL);
+        // Draw detection outlines
+        findApritagL.DrawDetections(distroImg);
+        
+        imshow("Tag Detections", distroImg);
     }
+    if(!imgCVR.empty()){
+        cv::Mat distroImg;
+        pCamera->UndistrotImage(imgCVR, distroImg, StereoCamera::IMG_TYPE_RIGHT);
+        cv::Mat gray;
+        cv::cvtColor(distroImg, gray,cv::COLOR_RGB2GRAY);
+        detectionsR.clear();
+        findApritagR.Detect(gray, detectionsR);
+    }
+    if(!imgCVL.empty()&&!imgCVR.empty()){
+        FindApritag::TagsPos detections;
+        CalApritagDepth(pCamera, detectionsL, detectionsR,detections, priorPoints);
+        DirectLinearTransform(detections, pCamera);
+        OpencvSolvePose(detections, pCamera);
+    }
+
+    cv::waitKey(0);
 
     return 0;
 }

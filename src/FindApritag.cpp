@@ -68,25 +68,7 @@ FindApritag::FindApritag(int argc,char** argv){
 }
 
 FindApritag::~FindApritag(){
-    apriltag_detector_destroy(mpApriltagDetector);
-    if (!strcmp(famname, "tag36h11")) {
-        tag36h11_destroy(mpApriltagFamily);
-    } else if (!strcmp(famname, "tag25h9")) {
-        tag25h9_destroy(mpApriltagFamily);
-    } else if (!strcmp(famname, "tag16h5")) {
-        tag16h5_destroy(mpApriltagFamily);
-    } else if (!strcmp(famname, "tagCircle21h7")) {
-        tagCircle21h7_destroy(mpApriltagFamily);
-    } else if (!strcmp(famname, "tagCircle49h12")) {
-        tagCircle49h12_destroy(mpApriltagFamily);
-    } else if (!strcmp(famname, "tagStandard41h12")) {
-        tagStandard41h12_destroy(mpApriltagFamily);
-    } else if (!strcmp(famname, "tagStandard52h13")) {
-        tagStandard52h13_destroy(mpApriltagFamily);
-    } else if (!strcmp(famname, "tagCustom48h12")) {
-        tagCustom48h12_destroy(mpApriltagFamily);
-    }
-    getopt_destroy(mpGetopt);
+    apriltag_detector_destroy(mpApriltagDetector);    
 }
 void FindApritag::Detect(cv::Mat& imgray,TagsPos& detectionsCenter){
     image_u8_t im = {.width = imgray.cols,
