@@ -145,13 +145,13 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-add_executable(test_apriltag src/test.cpp src/Camera.cpp src/FindApritag.cpp)
+add_executable(test_apriltag src/test.cpp src/Camera.cpp src/FindApriltag.cpp src/DirectLinearTransform.cpp)
 target_link_libraries(test_apriltag
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${apriltag_LIBS}
 )
-add_executable(${PROJECT_NAME}_node src/apriltag_test_node.cpp src/Camera.cpp src/FindApritag.cpp)
+add_executable(${PROJECT_NAME}_node src/apriltag_test_node.cpp src/Camera.cpp src/FindApriltag.cpp src/DirectLinearTransform.cpp)
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}

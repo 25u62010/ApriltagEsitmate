@@ -28,6 +28,35 @@ struct Pixel {
 		return *this;
 	}
 };
+struct zPoint2d {
+	float x;
+	float y;
+	zPoint2d() {
+		
+	}
+	zPoint2d(const zPoint2d& Other){
+		x = Other.x;
+		y = Other.y;
+	}
+	zPoint2d(const Pixel& Other){
+		x = Other.u;
+		y = Other.v;
+	}
+	zPoint2d(float _x,float _y) 
+	:x(_x),y(_y){
+
+	}
+	zPoint2d operator=(const zPoint2d& Other){
+		x = Other.x;
+		y = Other.y;
+		return *this;
+	}
+	zPoint2d operator=(const Pixel& Other){
+		x = Other.u;
+		y = Other.v;
+		return *this;
+	}
+};
 struct zPoint3d{
 	float x;
 	float y;
