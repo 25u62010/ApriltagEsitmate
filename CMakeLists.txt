@@ -125,12 +125,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  ${PROJECT_SOURCE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
   ${apriltag_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIR}
 )
-
+add_subdirectory(Thirdparty/g2o)
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/apriltag_test.cpp
@@ -150,12 +151,14 @@ target_link_libraries(test_apriltag
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${apriltag_LIBS}
+  ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
 add_executable(${PROJECT_NAME}_node src/apriltag_test_node.cpp src/Camera.cpp src/FindApriltag.cpp src/DirectLinearTransform.cpp)
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${apriltag_LIBS}
+  ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
 #############
 ## Install ##
