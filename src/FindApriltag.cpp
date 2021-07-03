@@ -1,6 +1,6 @@
 #include "FindApriltag.h"
 #include <string>
-
+#include <fstream>
 using namespace std;
 FindApriltag::FindApriltag(int argc,char** argv){
     mpGetopt = getopt_create();
@@ -108,10 +108,10 @@ void FindApriltag::DrawDetections(cv::Mat& dst, zarray_t *pDetectionsArray){
         
     }
 }
-StereoApriltagDetecter::StereoApriltagDetecter(ZLZ_SLAM::StereoCamera::Ptr pCamera)
+StereoApriltagDetecter::StereoApriltagDetecter(ZLZ_SLAM::StereoCamera::Ptr pCamera,string priporPointsFile)
                                             :mDetecter(FindApriltag(0,nullptr)){
     mpCamera = pCamera;
-    ReadPriotPoints(mPriorPoints);
+    ReadPriotPoints(priporPointsFile);
 }
 TagsPos StereoApriltagDetecter::Detect(cv::Mat& leftGray,cv::Mat& rightGray,zarray_t*& leftZarray){
     mDetecter.Detect(leftGray,leftZarray);
@@ -168,23 +168,26 @@ void StereoApriltagDetecter::CalApritagDepth(TagsPos &leftDetections,TagsPos &ri
         }
     }
 }
-void StereoApriltagDetecter::ReadPriotPoints(unordered_map<int, ZLZ_SLAM::zPoint3d>& priorPoints){
-    priorPoints[0] = ZLZ_SLAM::zPoint3d(-0.0187269, 0.0235515, 0.406504);
-    priorPoints[1] = ZLZ_SLAM::zPoint3d(0.0279681, 0.0250091, 0.404674);
-    priorPoints[2] = ZLZ_SLAM::zPoint3d(0.0748893, 0.0264632, 0.404931);
-    priorPoints[3] = ZLZ_SLAM::zPoint3d(0.122301, 0.0278866, 0.406035);
-    priorPoints[4] = ZLZ_SLAM::zPoint3d(-0.0203539, 0.0703956, 0.407084);
-    priorPoints[5] = ZLZ_SLAM::zPoint3d(0.0265281, 0.0719214, 0.404903);
-    priorPoints[6] = ZLZ_SLAM::zPoint3d(0.0734862, 0.0735234, 0.404974);
-    priorPoints[7] = ZLZ_SLAM::zPoint3d(0.120967, 0.0751284, 0.406239);
-    priorPoints[8] = ZLZ_SLAM::zPoint3d(-0.0217832, 0.117352, 0.408016);
-    priorPoints[9] = ZLZ_SLAM::zPoint3d(0.0250485, 0.11917, 0.406369);
-    priorPoints[10] = ZLZ_SLAM::zPoint3d(0.0720398, 0.1209, 0.40554);
-    priorPoints[11] = ZLZ_SLAM::zPoint3d(0.119692, 0.122749, 0.407054);
-    priorPoints[12] = ZLZ_SLAM::zPoint3d(-0.023545, 0.164959, 0.409988);
-    priorPoints[13] = ZLZ_SLAM::zPoint3d(0.0235046, 0.166806, 0.408037);
-    priorPoints[14] = ZLZ_SLAM::zPoint3d(0.0707229, 0.1686, 0.406986);
-    priorPoints[15] = ZLZ_SLAM::zPoint3d(0.118351, 0.170304, 0.407742);
+void StereoApriltagDetecter::ReadPriotPoints(const string& filePath){
+    ifstream file;
+    file.open(filePath.c_str());
+    if(file.eof()){
+        throw "Cannot open prior position file.";
+        return;
+    }
+    while(!file.eof()){
+        string s;
+        stringstream ss;
+        getline(file, s);
+        ss << s;
+        int tag;
+        double x, y, z;
+        ss >> tag;
+        ss >> x;
+        ss >> y;
+        ss >> z;
+        mPriorPoints[tag]=ZLZ_SLAM::zPoint3d(x, y, z);
+    }
 }
 void StereoApriltagDetecter::DrawDetection(cv::Mat& dst, zarray_t *pDetectionsArray,cv::Mat& T){
     mDetecter.DrawDetections(dst, pDetectionsArray);

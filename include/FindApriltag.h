@@ -32,7 +32,7 @@ private:
 };
 class StereoApriltagDetecter{
 public:
-    StereoApriltagDetecter(ZLZ_SLAM::StereoCamera::Ptr pCamera);
+    StereoApriltagDetecter(ZLZ_SLAM::StereoCamera::Ptr pCamera,string priporPointsFile);
     TagsPos Detect(cv::Mat& leftGray,cv::Mat& rightGray,zarray_t*& leftZarray);
     TagsPos Detect(cv::Mat& leftGray,cv::Mat& rightGray);
     TagsPos mDetections;
@@ -43,5 +43,5 @@ private:
     ZLZ_SLAM::StereoCamera::Ptr mpCamera;
     unordered_map<int, ZLZ_SLAM::zPoint3d> mPriorPoints;
     void CalApritagDepth(TagsPos &leftDetections, TagsPos &rightDetections);
-    void ReadPriotPoints(unordered_map<int, ZLZ_SLAM::zPoint3d> &priorPoints);
+    void ReadPriotPoints(const string& filePath);
 };
