@@ -15,7 +15,16 @@
 
 #include "Camera.h"
 #include <unordered_map>
-typedef std::unordered_map<int, ZLZ_SLAM::zPoint> TagsPos;
+struct TagPos{
+    float s;
+    ZLZ_SLAM::Pixel pixel;
+    ZLZ_SLAM::Pixel pixelR;
+    ZLZ_SLAM::zPoint3d worldCoor;
+    TagPos(){
+	}
+	TagPos(ZLZ_SLAM::Pixel _pixel):pixel(_pixel){};
+};
+typedef std::unordered_map<int, TagPos> TagsPos;
 class FindApriltag{
 public:
     FindApriltag(int argc,char** argv);
@@ -33,8 +42,8 @@ private:
 class StereoApriltagDetecter{
 public:
     StereoApriltagDetecter(ZLZ_SLAM::StereoCamera::Ptr pCamera,string priporPointsFile);
-    TagsPos Detect(cv::Mat& leftGray,cv::Mat& rightGray,zarray_t*& leftZarray);
-    TagsPos Detect(cv::Mat& leftGray,cv::Mat& rightGray);
+    void DetectStereo(cv::Mat& leftGray,cv::Mat& rightGray,zarray_t*& leftZarray);
+    void DetectMono(cv::Mat& leftGray,zarray_t*& leftZarray);
     TagsPos mDetections;
     void DrawDetection(cv::Mat& dst, zarray_t *pDetectionsArray,cv::Mat& T);
 

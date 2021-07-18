@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     ros::Rate r(100);
     StereoCamera::Ptr pCamera = StereoCamera::CreateStereoCamera("/home/zlz/catkin_ws/src/apriltag_test/config/mynteye.yaml");
     DirectLinearTransform dlt(pCamera,200);
-    StereoApriltagDetecter stereoDetector(pCamera);
+    StereoApriltagDetecter stereoDetector(pCamera,"/home/zlz/catkin_ws/src/apriltag_test/config/PriorTagWorldPos.txt");
     cv::Mat T;
     cv::Mat grayL,grayR; 
     cv::Mat distroImg;

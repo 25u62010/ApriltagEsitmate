@@ -2,6 +2,7 @@
 
 using namespace std;
 using namespace ZLZ_SLAM;
+
 DirectLinearTransform::DirectLinearTransform(StereoCamera::Ptr& pCamera,int nIterations)
                                    :mnIterations(nIterations),mK(pCamera->mK){
     
@@ -19,8 +20,7 @@ void DirectLinearTransform::Normalize(const TagsPos  &points, TagsPos  &vNormali
 
     vNormalizedPoints.clear();
 
-    for (TagsPos ::const_iterator it = points.begin(), end = points.end(); it != end;it++)
-    {
+    for (TagsPos ::const_iterator it = points.begin(), end = points.end(); it != end;it++){
         meanU += it->second.pixel.u;
         meanV += it->second.pixel.v;
         meanX += it->second.worldCoor.x;
@@ -37,8 +37,7 @@ void DirectLinearTransform::Normalize(const TagsPos  &points, TagsPos  &vNormali
     float meanDevX = 0;
     float meanDevY = 0;
 
-    for(TagsPos ::const_iterator it = points.begin(), end = points.end(); it != end;it++)
-    {
+    for(TagsPos ::const_iterator it = points.begin(), end = points.end(); it != end;it++){
         int tagNo = it->first;
         vNormalizedPoints[tagNo].pixel.u = it->second.pixel.u - meanU;
         vNormalizedPoints[tagNo].pixel.v = it->second.pixel.v - meanV;
@@ -78,7 +77,7 @@ void DirectLinearTransform::Normalize(const TagsPos  &points, TagsPos  &vNormali
     T1.at<double>(1,2) = -meanY*sY;
 }
 
-cv::Mat DirectLinearTransform::CalH(vector<zPoint>& points){
+cv::Mat DirectLinearTransform::CalH(vector<TagPos>& points){
     int n = points.size();
     cv::Mat D(int(n * 2), 9, CV_64FC1, cv::Scalar(0));
     double *D_ptr;
@@ -106,9 +105,9 @@ cv::Mat DirectLinearTransform::CalH(vector<zPoint>& points){
     return H;
 }
 
-float DirectLinearTransform::CheckInlinear(TagsPos & points,unordered_map<int, bool>& inlinears,cv::Mat& H){
+float DirectLinearTransform::CheckInlinear(TagsPos & points,unordered_map<int, double>& scalars,cv::Mat& H){
     vector<Pixel> pixels;
-    float score;
+    float score=0;
     const double h11 = H.at<double>(0, 0);
     const double h12 = H.at<double>(0, 1);
     const double h13 = H.at<double>(0, 2);
@@ -119,8 +118,8 @@ float DirectLinearTransform::CheckInlinear(TagsPos & points,unordered_map<int, b
     const double h32 = H.at<double>(2, 1);
     const double h33 = H.at<double>(2, 2);
     for (TagsPos ::iterator it = points.begin(), mend = points.end(); it != mend;it++){
-        zPoint point = it->second;
-        double s = point.cameraCoor.z;
+        TagPos point = it->second;
+        double s= h31 * point.worldCoor.x + h32 * point.worldCoor.y + h33;
         double u1 = h11 * point.worldCoor.x + h12 * point.worldCoor.y + h13;
         u1 /= s;
         double v1 = h21 * point.worldCoor.x + h22 * point.worldCoor.y + h23;
@@ -128,18 +127,15 @@ float DirectLinearTransform::CheckInlinear(TagsPos & points,unordered_map<int, b
         double error = (u1 - point.pixel.u) * (u1 - point.pixel.u) + (v1 - point.pixel.v) * (v1 - point.pixel.v);
         if( error < 5.991 ){
             score += 5.991 - error;
-            inlinears[it->first] = true;
-        }
-        else{
-            inlinears[it->first] = false;
+            scalars[it->first] = s;
         }
     }
     return score;
 }
-void DirectLinearTransform::CalT(TagsPos  &detections,cv::Mat& T){
+bool DirectLinearTransform::CalT(TagsPos  &detections,cv::Mat& T){
     if(detections.size()<8){
         cout << "The number of detections must larger than 6." << endl;
-        return;
+        return false;
     }
     cv::RNG rng;
     vector<int> candiateNo;
@@ -155,13 +151,12 @@ void DirectLinearTransform::CalT(TagsPos  &detections,cv::Mat& T){
     TagsPos  vNormalizedPoints;
     Normalize(detections, vNormalizedPoints, T_UV, T_XY);
     cv::Mat Tinv = T_UV.inv();
-    unordered_map<int, bool> inlinears;
+    unordered_map<int, double> scalar;
     float maxScore=0;
-    for (int i = 0; i < mnIterations; i++)
-    {
+    for (int i = 0; i < mnIterations; i++){
         vector<int> candiateNoTemp = candiateNo;
-        vector<zPoint> points;
-        unordered_map<int, bool> inlinearsI1,inlinearsI2;
+        vector<TagPos> points;
+        unordered_map<int, double> scalars1,scalars2;
         for (int j = 0; j < 8; j++){
             int no = rng.uniform(0, candiateNoTemp.size());
             points.push_back(vNormalizedPoints[candiateNoTemp[no]]);
@@ -172,21 +167,26 @@ void DirectLinearTransform::CalT(TagsPos  &detections,cv::Mat& T){
         Hi = Tinv * Hi * T_XY;
         double lamdai = 1 / cv::norm(kInv * Hi.col(0));
         Hi *= lamdai;
-        float score1 = CheckInlinear(detections, inlinearsI1, Hi);
+        float score1 = CheckInlinear(detections, scalars1, Hi);
         if(score1>maxScore){
             maxScore = score1;
-            inlinears = inlinearsI1;
+            scalar = scalars1;
             homongraph = Hi;
         }
         Hi = -Hi;
-        float score2 = CheckInlinear(detections, inlinearsI2, Hi);
+        float score2 = CheckInlinear(detections, scalars2, Hi);
         if(score2>maxScore){
             maxScore = score2;
-            inlinears = inlinearsI2;
+            scalar = scalars2;
             homongraph = Hi;
         }
     }
-    
+    for(TagsPos ::iterator it = detections.begin(), mend = detections.end(); it != mend;it++){
+        int tagIndex = it->first;
+        if (scalar.find(tagIndex)!=scalar.end()){
+            it->second.s = scalar[tagIndex];
+        }
+    }
     cv::Mat r1 = kInv * homongraph.col(0);
     cv::Mat r2 = kInv * homongraph.col(1);
     cv::Mat t =  kInv * homongraph.col(2);
@@ -200,7 +200,7 @@ void DirectLinearTransform::CalT(TagsPos  &detections,cv::Mat& T){
     cv::SVDecomp(R, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
     R = u * vt;
     
-    if( t.at<double>(2,0)<0 ){
+    if( t.at<double>(2,0)< 0 ){
         cv::Mat Rz_pi_2 = (cv::Mat_<double>(3,3) << -1, 0, 0, 0, -1, 0, 0, 0, 1);
         t = -t;
         R = Rz_pi_2 * R;
@@ -211,14 +211,13 @@ void DirectLinearTransform::CalT(TagsPos  &detections,cv::Mat& T){
         T = -T;
     }
     T.at < double >(3,3)= 1;
+    return true;
 }
 void DirectLinearTransform::OpencvSolvePose(TagsPos & detections,cv::Mat& T){
     vector<cv::Point2f> uv;
     vector<cv::Point3f> xyz;
     int count = 0;
-    for (auto detection : detections)
-    {
-        float s = detection.second.cameraCoor.z;
+    for (auto detection : detections){
         cv::Point2f pixeli;
         pixeli.x = detection.second.pixel.u;
         pixeli.y= detection.second.pixel.v;
@@ -248,4 +247,148 @@ void DirectLinearTransform::OpencvSolvePose(TagsPos & detections,cv::Mat& T){
     rmat0.copyTo(T.rowRange(0, 3).colRange(0, 3));
     tvec0.copyTo(T.rowRange(0, 3).col(3));
     T.at < double >(3,3)= 1;
+}
+g2o::SE3Quat DirectLinearTransform::toSE3Quat(const cv::Mat &cvT)
+{
+    Eigen::Matrix<double,3,3> R;
+    R << cvT.at<double>(0,0), cvT.at<double>(0,1), cvT.at<double>(0,2),
+         cvT.at<double>(1,0), cvT.at<double>(1,1), cvT.at<double>(1,2),
+         cvT.at<double>(2,0), cvT.at<double>(2,1), cvT.at<double>(2,2);
+
+    Eigen::Matrix<double,3,1> t(cvT.at<double>(0,3), cvT.at<double>(1,3), cvT.at<double>(2,3));
+    return g2o::SE3Quat(R, t);
+}
+cv::Mat DirectLinearTransform::toCvMat(const g2o::SE3Quat &SE3){
+    Eigen::Matrix<double,4,4> eigMat = SE3.to_homogeneous_matrix();
+    cv::Mat cvMat(4, 4, CV_64F);
+    for(int i=0;i<4;i++)
+        for(int j=0; j<4; j++)
+            cvMat.at<double>(i,j)=eigMat(i,j);
+    return cvMat.clone();
+}
+int DirectLinearTransform::PoseOptimizationOnlyPose(TagsPos &detections, cv::Mat &T){
+    g2o::SparseOptimizer optimizer;
+    g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
+
+    linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+
+    g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
+
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+    optimizer.setAlgorithm(solver);
+    // Set Frame vertex
+    g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
+    vSE3->setEstimate(toSE3Quat(T));
+    vSE3->setId(0);
+    vSE3->setFixed(false);
+    optimizer.addVertex(vSE3);
+    const float delta= sqrt(5.996);
+    vector<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdges;
+    for (TagsPos::iterator it = detections.begin(), itEnd = detections.end(); it != itEnd; it++){
+        Eigen::Matrix<double,2,1> obs;
+        obs << it->second.pixel.u, it->second.pixel.v;
+        g2o::EdgeSE3ProjectXYZOnlyPose* e = new g2o::EdgeSE3ProjectXYZOnlyPose();
+        e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+        e->setMeasurement(obs);
+        e->setInformation(Eigen::Matrix2d::Identity());
+        g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
+        e->setRobustKernel(rk);
+        rk->setDelta(delta); 
+        e->fx = mK.at<double>(0, 0);
+        e->fy = mK.at<double>(1, 1);
+        e->cx = mK.at<double>(0, 2);
+        e->cy = mK.at<double>(1, 2);
+        e->Xw[0] = static_cast<double>(it->second.worldCoor.x) ;
+        e->Xw[1] = static_cast<double>(it->second.worldCoor.y) ;
+        e->Xw[2] = static_cast<double>(it->second.worldCoor.z) ;
+        optimizer.addEdge(e);
+        vpEdges.push_back(e);
+    }
+    int nBad = 0;
+    const float chi2Mono[4] = {5.991, 5.991, 5.991, 5.991};
+    for(size_t i=0; i<4; i++){
+        vSE3->setEstimate(toSE3Quat(T));
+        optimizer.initializeOptimization(0);
+        optimizer.optimize(20);
+        for(size_t edgeIndex=0, iend=vpEdges.size(); edgeIndex<iend; edgeIndex++){
+            g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdges[edgeIndex];
+            const float chi2 = e->chi2();
+            if(chi2>chi2Mono[i]){               
+                e->setLevel(1);                 
+                nBad++;
+            }
+            else{
+                e->setLevel(0);
+            }
+            if(i==2)
+                e->setRobustKernel(0); 
+        }
+    }
+    g2o::VertexSE3Expmap* vSE3_recov = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(0));
+    g2o::SE3Quat SE3quat_recov = vSE3_recov->estimate();
+    T = toCvMat(SE3quat_recov);
+    return nBad;
+}
+int DirectLinearTransform::PoseOptimization(TagsPos &detections, cv::Mat &T){
+    g2o::SparseOptimizer optimizer;
+    g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
+
+    linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+
+    g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
+
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+    optimizer.setAlgorithm(solver);
+    // Set Frame vertex
+    g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
+    vSE3->setEstimate(toSE3Quat(T));
+    vSE3->setId(0);
+    vSE3->setFixed(false);
+    optimizer.addVertex(vSE3);
+    const float delta= sqrt(5.996);
+    vector<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdges;
+    for (TagsPos::iterator it = detections.begin(), itEnd = detections.end(); it != itEnd; it++){
+        Eigen::Matrix<double,2,1> obs;
+        obs << it->second.pixel.u, it->second.pixel.v;
+        g2o::EdgeSE3ProjectXYZOnlyPose* e = new g2o::EdgeSE3ProjectXYZOnlyPose();
+        e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+        e->setMeasurement(obs);
+        e->setInformation(Eigen::Matrix2d::Identity());
+        g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
+        e->setRobustKernel(rk);
+        rk->setDelta(delta); 
+        e->fx = mK.at<double>(0, 0);
+        e->fy = mK.at<double>(1, 1);
+        e->cx = mK.at<double>(0, 2);
+        e->cy = mK.at<double>(1, 2);
+        e->Xw[0] = static_cast<double>(it->second.worldCoor.x) ;
+        e->Xw[1] = static_cast<double>(it->second.worldCoor.y) ;
+        e->Xw[2] = static_cast<double>(it->second.worldCoor.z) ;
+        optimizer.addEdge(e);
+        vpEdges.push_back(e);
+    }
+    int nBad = 0;
+    const float chi2Mono[4] = {5.991, 5.991, 5.991, 5.991};
+    for(size_t i=0; i<4; i++){
+        vSE3->setEstimate(toSE3Quat(T));
+        optimizer.initializeOptimization(0);
+        optimizer.optimize(20);
+        for(size_t edgeIndex=0, iend=vpEdges.size(); edgeIndex<iend; edgeIndex++){
+            g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdges[edgeIndex];
+            const float chi2 = e->chi2();
+            if(chi2>chi2Mono[i]){               
+                e->setLevel(1);                 
+                nBad++;
+            }
+            else{
+                e->setLevel(0);
+            }
+            if(i==2)
+                e->setRobustKernel(0); 
+        }
+    }
+    g2o::VertexSE3Expmap* vSE3_recov = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(0));
+    g2o::SE3Quat SE3quat_recov = vSE3_recov->estimate();
+    T = toCvMat(SE3quat_recov);
+    return nBad;
 }
