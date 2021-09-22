@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(apriltag_test)
 SET(CMAKE_BUILD_TYPE Debug)
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+
+MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -131,7 +135,7 @@ include_directories(
   ${apriltag_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIR}
 )
-add_subdirectory(Thirdparty/g2o)
+#add_subdirectory(Thirdparty/g2o)
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/apriltag_test.cpp

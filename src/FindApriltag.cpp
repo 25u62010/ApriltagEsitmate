@@ -80,6 +80,9 @@ void FindApriltag::Detect(cv::Mat& imgray,zarray_t*& pDetectionsArray){
     pDetectionsArray = apriltag_detector_detect(mpApriltagDetector, &im);
 }
 void FindApriltag::DrawDetections(cv::Mat& dst, zarray_t *pDetectionsArray){
+    if(pDetectionsArray == nullptr){
+        return;
+    }
     for (int i = 0; i < zarray_size(pDetectionsArray); i++) {
         apriltag_detection_t *det;
         zarray_get(pDetectionsArray, i, &det);
@@ -113,7 +116,7 @@ StereoApriltagDetecter::StereoApriltagDetecter(ZLZ_SLAM::StereoCamera::Ptr pCame
     mpCamera = pCamera;
     ReadPriotPoints(priporPointsFile);
 }
-TagsPos StereoApriltagDetecter::Detect(cv::Mat& leftGray,cv::Mat& rightGray,zarray_t*& leftZarray){
+void StereoApriltagDetecter::DetectStereo(cv::Mat& leftGray,cv::Mat& rightGray,zarray_t*& leftZarray){
     mDetecter.Detect(leftGray,leftZarray);
     TagsPos leftPos;
     for (int i = 0; i < zarray_size(leftZarray); i++){
@@ -130,27 +133,21 @@ TagsPos StereoApriltagDetecter::Detect(cv::Mat& leftGray,cv::Mat& rightGray,zarr
         rightPos[det->id].pixel = ZLZ_SLAM::Pixel(det->c[0], det->c[1]);
     }
     CalApritagDepth(leftPos, rightPos);
-    return mDetections;
 }
-TagsPos StereoApriltagDetecter::Detect(cv::Mat& leftGray,cv::Mat& rightGray){
-    zarray_t * leftZarray=nullptr;
-    mDetecter.Detect(leftGray, leftZarray);
-    TagsPos leftPos;
+void StereoApriltagDetecter::DetectMono(cv::Mat& leftGray,zarray_t*& leftZarray){
+    mDetecter.Detect(leftGray,leftZarray);
+    mDetections.clear();
     for (int i = 0; i < zarray_size(leftZarray); i++){
         apriltag_detection_t *det;
         zarray_get(leftZarray, i, &det);
-        leftPos[det->id].pixel = ZLZ_SLAM::Pixel(det->c[0], det->c[1]);
+        int id = det->id;
+        mDetections[id].s = -1;
+        if(mPriorPoints.count(id)){
+            mDetections[id].pixel = ZLZ_SLAM::Pixel(det->c[0], det->c[1]);
+            mDetections[id].s = static_cast<float>(-1);
+            mDetections[id].worldCoor = mPriorPoints[id];
+        }
     }
-    zarray_t *rightZarray=nullptr;
-    mDetecter.Detect(rightGray,rightZarray);
-    TagsPos rightPos;
-    for (int i = 0; i < zarray_size(rightZarray); i++){
-        apriltag_detection_t *det;
-        zarray_get(rightZarray, i, &det);
-        rightPos[det->id].pixel = ZLZ_SLAM::Pixel(det->c[0], det->c[1]);
-    }
-    CalApritagDepth(leftPos, rightPos);
-    return mDetections;
 }
 void StereoApriltagDetecter::CalApritagDepth(TagsPos &leftDetections,TagsPos &rightDetections){
     for (TagsPos ::iterator it = leftDetections.begin(); it != leftDetections.end();it++){
@@ -160,11 +157,9 @@ void StereoApriltagDetecter::CalApritagDepth(TagsPos &leftDetections,TagsPos &ri
                 continue;
             }
             mDetections[it->first].pixel = it->second.pixel;
-            mDetections[it->first].cameraCoor = mpCamera->Pixel2Camera(it->second.pixel, depth);
+            mDetections[it->first].pixelR = rightDetections[it->first].pixel;
+            mDetections[it->first].s = static_cast<float>(depth);
             mDetections[it->first].worldCoor = mPriorPoints[it->first];
-            cout << "no." << it->first << " " << mDetections[it->first].cameraCoor.x 
-                                      << ", " << mDetections[it->first].cameraCoor.y
-                                      << ", " << mDetections[it->first].cameraCoor.z << endl;
         }
     }
 }
@@ -210,11 +205,11 @@ void StereoApriltagDetecter::DrawDetection(cv::Mat& dst, zarray_t *pDetectionsAr
     textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
     putText(dst, text, cv::Point(15 , 90),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
     
-    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+    double sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
  
     bool singular = sy < 1e-6; // If
  
-    float roll, pitch, yaw;
+    double roll, pitch, yaw;
     if (!singular)
     {
         roll = atan2(R.at<double>(2,1) , R.at<double>(2,2));
@@ -237,6 +232,39 @@ void StereoApriltagDetecter::DrawDetection(cv::Mat& dst, zarray_t *pDetectionsAr
     putText(dst, text, cv::Point(15 , 180),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
 
     text = "Yaw = " + to_string(yaw);  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 210),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+}
+void StereoApriltagDetecter::DrawDetection(cv::Mat& dst, zarray_t *pDetectionsArray){
+    mDetecter.DrawDetections(dst, pDetectionsArray);
+    cv::copyMakeBorder(dst, dst, 0, 0, 180, 0,cv::BORDER_CONSTANT,cv::Scalar(125,125,125));
+    setprecision(2);
+    double fontscale = 0.6;
+    int fontface = cv::FONT_HERSHEY_COMPLEX;
+    int baseline;
+    string text = "X = #.#######";
+    cv::Size textsize = cv::getTextSize(text, fontface, 1, 1,&baseline);
+    putText(dst, text, cv::Point(15 ,30),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+    
+    text = "Y = #.#######";  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 60),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+    text = "Z = #.#######";
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 90),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+ 
+
+    text = "Roll = #.#######";  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 150),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+    text = "Pitch = #.#######";  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 180),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+    text = "Yaw = #.#######";  
     textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
     putText(dst, text, cv::Point(15 , 210),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
 
