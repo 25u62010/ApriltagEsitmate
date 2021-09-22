@@ -46,6 +46,7 @@ public:
     void DetectMono(cv::Mat& leftGray,zarray_t*& leftZarray);
     TagsPos mDetections;
     void DrawDetection(cv::Mat& dst, zarray_t *pDetectionsArray,cv::Mat& T);
+    void DrawDetection(cv::Mat &dst, zarray_t *pDetectionsArray);
 
 private:
     FindApriltag mDetecter;

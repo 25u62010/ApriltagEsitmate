@@ -47,26 +47,23 @@ int main(int argc, char **argv)
     while (ros::ok())
     {
         if(!imgCVL.empty()){
-            
             pCamera->UndistrotImage(imgCVL, distroImg, StereoCamera::IMG_TYPE_LEFT);  
             cv::cvtColor(distroImg, grayL,cv::COLOR_RGB2GRAY);
-        }
-        if(!imgCVR.empty()){
-            cv::Mat distroImgR;
-            pCamera->UndistrotImage(imgCVR, distroImgR, StereoCamera::IMG_TYPE_RIGHT);
-            cv::Mat gray;
-            cv::cvtColor(distroImgR, grayR,cv::COLOR_RGB2GRAY);
-        }
-        if(!imgCVL.empty()&&!imgCVR.empty()){
             zarray_t * leftZarray=nullptr;
             TagsPos  detections;
-            detections=stereoDetector.Detect(grayL, grayR,leftZarray);
-            dlt.CalT(detections,T);
-            stereoDetector.DrawDetection(distroImg, leftZarray, T);
+            stereoDetector.DetectMono(grayL,leftZarray);
+            detections = stereoDetector.mDetections;
+            cv::Mat T;
+            if(dlt.CalT(detections, T)){
+                dlt.PoseOptimizationOnlyPose(detections, T);
+                stereoDetector.DrawDetection(distroImg, leftZarray, T);
+            }
+            else{
+                stereoDetector.DrawDetection(distroImg, leftZarray);
+            }
             cv::imshow("DistroImage", distroImg);
-            
+            cv::waitKey(10);
         }
-        cv::waitKey(20);
         ros::spinOnce();
         r.sleep();
     }

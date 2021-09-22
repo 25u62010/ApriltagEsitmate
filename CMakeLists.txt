@@ -135,7 +135,7 @@ include_directories(
   ${apriltag_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIR}
 )
-add_subdirectory(Thirdparty/g2o)
+#add_subdirectory(Thirdparty/g2o)
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/apriltag_test.cpp

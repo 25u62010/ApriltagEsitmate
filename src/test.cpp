@@ -31,9 +31,9 @@ int main(int argc, char **argv)
             cv::Mat distroImgL;
             pCamera->UndistrotImage(imgCVL, distroImgL, StereoCamera::IMG_TYPE_LEFT);   
             cv::cvtColor(distroImgL, grayL,cv::COLOR_RGB2GRAY);
-            zarray_t *leftZarry=nullptr;
+            zarray_t *leftZarray=nullptr;
             TagsPos detections;
-            stereoDetector.DetectMono(grayL,leftZarry);
+            stereoDetector.DetectMono(grayL,leftZarray);
             detections = stereoDetector.mDetections;
             cv::Mat T;
             if(!dlt.CalT(detections, T)){
@@ -42,11 +42,11 @@ int main(int argc, char **argv)
             cout << "T_S" << T << endl;
             dlt.PoseOptimizationOnlyPose(detections, T);
             cout << "T_D" << T << endl;
-            stereoDetector.DrawDetection(distroImgL, leftZarry, T);
+            stereoDetector.DrawDetection(distroImgL, leftZarray, T);
             cv::imshow("DistroImage", distroImgL);
             std::string imgSavePath = "/home/zlz/PhotoSave/L" + to_string(matIndex) + "result.jpg";
-            cv::imwrite(imgSavePath, distroImgL);
-            cv::waitKey(100);
+            //cv::imwrite(imgSavePath, distroImgL);
+            cv::waitKey(0);
         }
     }
     return 0;

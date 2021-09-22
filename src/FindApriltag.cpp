@@ -80,6 +80,9 @@ void FindApriltag::Detect(cv::Mat& imgray,zarray_t*& pDetectionsArray){
     pDetectionsArray = apriltag_detector_detect(mpApriltagDetector, &im);
 }
 void FindApriltag::DrawDetections(cv::Mat& dst, zarray_t *pDetectionsArray){
+    if(pDetectionsArray == nullptr){
+        return;
+    }
     for (int i = 0; i < zarray_size(pDetectionsArray); i++) {
         apriltag_detection_t *det;
         zarray_get(pDetectionsArray, i, &det);
@@ -229,6 +232,39 @@ void StereoApriltagDetecter::DrawDetection(cv::Mat& dst, zarray_t *pDetectionsAr
     putText(dst, text, cv::Point(15 , 180),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
 
     text = "Yaw = " + to_string(yaw);  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 210),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+}
+void StereoApriltagDetecter::DrawDetection(cv::Mat& dst, zarray_t *pDetectionsArray){
+    mDetecter.DrawDetections(dst, pDetectionsArray);
+    cv::copyMakeBorder(dst, dst, 0, 0, 180, 0,cv::BORDER_CONSTANT,cv::Scalar(125,125,125));
+    setprecision(2);
+    double fontscale = 0.6;
+    int fontface = cv::FONT_HERSHEY_COMPLEX;
+    int baseline;
+    string text = "X = #.#######";
+    cv::Size textsize = cv::getTextSize(text, fontface, 1, 1,&baseline);
+    putText(dst, text, cv::Point(15 ,30),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+    
+    text = "Y = #.#######";  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 60),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+    text = "Z = #.#######";
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 90),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+ 
+
+    text = "Roll = #.#######";  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 150),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+    text = "Pitch = #.#######";  
+    textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
+    putText(dst, text, cv::Point(15 , 180),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
+
+    text = "Yaw = #.#######";  
     textsize = cv::getTextSize(text, fontface, 1, 1, &baseline);
     putText(dst, text, cv::Point(15 , 210),fontface, fontscale, cv::Scalar(0, 0, 0), 2);
 
